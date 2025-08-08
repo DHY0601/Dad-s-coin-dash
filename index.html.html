@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dad's Coin Dash - Made with Ludo.ai</title>
+    <meta name="description" content="Interactive playable game created with Ludo.ai - AI-powered game development platform">
+    <meta name="generator" content="Ludo.ai">
+    <meta name="author" content="Ludo.ai">
+    <meta name="keywords" content="playable game, interactive, AI-generated, Ludo.ai, pixijs">
+    <meta name="created-date" content="2025-08-08">
+    <meta name="game-engine" content="pixijs">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .game-header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 12px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            flex-shrink: 0;
+        }
+        .game-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 4px 0;
+            color: #fff;
+        }
+        .game-info {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            margin: 0;
+        }
+        .game-description {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+            margin: 8px 0 0 0;
+            line-height: 1.4;
+        }
+        .game-engine {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 8px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        #gameContainer {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 0;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            max-width: 100vw;
+            max-height: 100vh;
+            width: auto;
+            height: auto;
+        }
+        body > canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+        }
+        .ludo-footer {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.7);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 11px;
+            text-decoration: none;
+            border-top-left-radius: 4px;
+            transition: all 0.2s ease;
+            z-index: 1000;
+        }
+        .ludo-footer:hover {
+            background: rgba(0, 0, 0, 0.9);
+            color: rgba(255, 255, 255, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-header">
+        <h1 class="game-title">Dad's Coin Dash</h1>
+        <p class="game-info">
+            Created with Ludo.ai on 2025-08-08
+            <span class="game-engine">pixijs</span>
+        </p>
+        <p class="game-description">A fast-paced arcade game where players control Dad to catch falling items, balancing collection of coins and happiness with avoiding hazards, all under a ticking clock.</p>
+        <p class="game-description"><strong>How to Play:</strong> Move Dad left/right with Arrow keys or A/D to catch falling items. Avoid rotten bananas and poison. Collect coins for score, happiness for points, and health to replenish HP. The game starts fast and gets more intense.</p>
+    </div>
+    <div id="gameContainer"></div>
+    <a href="https://ludo.ai" target="_blank" class="ludo-footer">
+        Made with Ludo.ai
+    </a>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.3/pixi.min.js" integrity="sha512-o3fAFcbCbTTJRFRNx4vByRZVtdKYF9uklctNjDXrN1JjT00rJxCCyNJSDi35rPBEqzWvYplcHLlEmyW34Ado8A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="https://cdn.jsdelivr.net/npm/pixi-filters@5.3.0/dist/browser/pixi-filters.min.js"></script>
+    <script type="module">
+        // Ludo.ai Playable Game
+        // Generated on: 2025-08-08
+        // Engine: pixijs
+        // Title: Dad's Coin Dash
+        
+        // Monitor for canvas elements and move them to gameContainer
+        const gameContainer = document.getElementById('gameContainer');
+        
+        // Function to move canvas elements to gameContainer
+        function moveCanvasToContainer() {
+            const canvases = document.querySelectorAll('body > canvas');
+            canvases.forEach(canvas => {
+                if (canvas.parentElement === document.body) {
+                    gameContainer.appendChild(canvas);
+                }
+            });
+        }
+        
+        // Monitor for new canvas elements
+        const observer = new MutationObserver(() => {
+            moveCanvasToContainer();
+        });
+        observer.observe(document.body, { childList: true });
+        
+        // Initial check
+        setTimeout(moveCanvasToContainer, 100);
+        
+        const GAME_WIDTH = 800;
+const GAME_HEIGHT = 600;
+const DAD_WIDTH = 90;
+const DAD_HEIGHT = 110;
+const ITEM_RADIUS = 22;
+const ITEM_DIAM = ITEM_RADIUS * 2;
+const GAME_TIME = 60;
+const GameState = {
+    START: 'start',
+    PLAYING: 'playing',
+    GAMEOVER: 'gameover'
+};
+    const ItemType = {
+    COIN: 'coin',
+    HAPPINESS: 'happiness',
+    HEALTH: 'health',
+    ROTTEN_BANANA: 'rotten_banana',
+    POISON: 'poison'
+};
+class Dad extends PIXI.Container {
+    constructor() {
+        super();
+        this.x = GAME_WIDTH / 2;
+        this.y = GAME_HEIGHT * 0.9;
+        this.speed = 8;
+        this._drawDad();
+        this.width = DAD_WIDTH;
+        this.height = DAD_HEIGHT;
+        this.pivot.set(DAD_WIDTH / 2, DAD_HEIGHT / 2);
+        this.movingLeft = false;
+        this.movingRight = false;
+        this.isFrozen = false;
+        this.freezeTimer = 0;
+    }
+    _drawDad() {
+        const g = new PIXI.Graphics();
+        g.beginFill(0xffffff);
+        g.lineStyle(4, 0x333366, 1);
+        g.drawRoundedRect(10, 10, 70, 100, 22);
+        g.endFill();
+        g.beginFill(0xffd7b5);
+        g.drawEllipse(45, 32, 30, 28);
+        g.endFill();
+        g.beginFill(0x333366);
+        g.drawRect(30, 65, 30, 18);
+        g.endFill();
+        g.beginFill(0x8ed8ff);
+        g.drawRect(20, 50, 50, 35);
+        g.endFill();
+        g.beginFill(0x333366);
+        g.drawRect(15, 90, 20, 16);
+        g.drawRect(55, 90, 20, 16);
+        g.endFill();
+        g.beginFill(0xffffff);
+        g.drawCircle(35, 32, 4);
+        g.drawCircle(55, 32, 4);
+        g.endFill();
+        g.beginFill(0x333366);
+        g.drawCircle(35, 32, 2);
+        g.drawCircle(55, 32, 2);
+        g.endFill();
+        g.moveTo(45, 44);
+        g.lineStyle(2, 0x333366);
+        g.arc(45, 44, 7, Math.PI * 0.1, Math.PI * 1.1, false);
+        g.endFill();
+        const dText = new PIXI.Text('D', {
+            fontFamily: 'Arial',
+            fontSize: 20,
+            fill: 0xffffff,
+            fontWeight: 'bold'
+        });
+        dText.anchor.set(0.5);
+        dText.x = 45;
+        dText.y = 70;
+        this.addChild(g, dText);
+    }
+    update() {
+        if (!this.isFrozen) {
+            if (this.movingLeft) this.x -= this.speed;
+            if (this.movingRight) this.x += this.speed;
+        }
+        if (this.x < this.width / 2) this.x = this.width / 2;
+        if (this.x > GAME_WIDTH - this.width / 2) this.x = GAME_WIDTH - this.width / 2;
+    }
+    getBoundsRect() {
+        return new PIXI.Rectangle(
+            this.x - this.width / 2,
+            this.y - this.height / 2,
+            this.width,
+            this.height
+        );
+    }
+}
+class FallingItem extends PIXI.Container {
+    constructor(x, speed, type) {
+        super();
+        this.x = x;
+        this.y = -ITEM_RADIUS;
+        this.speed = speed;
+        this.caught = false;
+        this.type = type;
+        this._drawItem();
+        this.width = ITEM_DIAM;
+        this.height = ITEM_DIAM;
+        this.pivot.set(ITEM_RADIUS, ITEM_RADIUS);
+    }
+    _drawItem() {
+        const g = new PIXI.Graphics();
+        let fillColor, lineColor, textContent, textColor, dropShadowColor;
+        let fontSize = 22;
+        switch (this.type) {
+            case ItemType.COIN:
+                fillColor = 0xffd700; 
+                lineColor = 0xcc9900; 
+                textContent = '$';
+                textColor = 0xcc9900;
+                dropShadowColor = 0x996600;
+                fontSize = 24;
+                g.beginFill(fillColor);
+                g.lineStyle(4, lineColor, 1);
+                g.drawCircle(ITEM_RADIUS, ITEM_RADIUS, ITEM_RADIUS - 2);
+                g.endFill();
+                break;
+            case ItemType.HAPPINESS:
+                textContent = '😊'; 
+                textColor = 0xffffff;
+                dropShadowColor = 0xcc0066;
+                fontSize = 40; 
+                break;
+            case ItemType.HEALTH:
+                fillColor = 0x00ff00; 
+                lineColor = 0x009900; 
+                textContent = '+';
+                textColor = 0xffffff;
+                dropShadowColor = 0x006600;
+                fontSize = 28;
+                g.beginFill(fillColor);
+                g.lineStyle(4, lineColor, 1);
+                g.drawRect(ITEM_RADIUS - 15, ITEM_RADIUS - 5, 30, 10); 
+                g.drawRect(ITEM_RADIUS - 5, ITEM_RADIUS - 15, 10, 30); 
+                g.endFill();
+                break;
+            case ItemType.ROTTEN_BANANA:
+                textContent = '🍌';
+                fontSize = 40;
+                textColor = 0x000000;
+                dropShadowColor = 0x555500;
+                break;
+            case ItemType.POISON:
+                textContent = '🧪';
+                fontSize = 40;
+                textColor = 0xffffff;
+                dropShadowColor = 0x006600;
+                break;
+        }
+        const text = new PIXI.Text(textContent, {
+            fontFamily: 'Arial',
+            fontWeight: 'bold',
+            fontSize: fontSize,
+            fill: textColor,
+            align: 'center',
+            dropShadow: true,
+            dropShadowColor: dropShadowColor,
+            dropShadowBlur: 4,
+            dropShadowDistance: 2,
+            dropShadowAngle: Math.PI / 2,
+            dropShadowAlpha: 0.7
+        });
+        text.anchor.set(0.5);
+        text.x = ITEM_RADIUS;
+        text.y = ITEM_RADIUS;
+        if (g.children.length > 0 || g.geometry.graphicsData.length > 0) {
+            this.addChild(g, text);
+        } else {
+            this.addChild(text);
+        }
+    }
+    update(delta) {
+        this.y += this.speed * delta;
+    }
+    getBoundsRect() {
+        return new PIXI.Rectangle(
+            this.x - ITEM_RADIUS,
+            this.y - ITEM_RADIUS,
+            ITEM_DIAM,
+            ITEM_DIAM
+        );
+    }
+}
+class Game {
+    constructor(app) {
+        this.app = app;
+        this.state = GameState.START;
+        this.fallingItems = [];
+        this.score = 0;
+        this.coinsCollected = 0;
+        this.happinessCollected = 0;
+        this.healthCollected = 0;
+        this.poisonCollected = 0;
+        this.health = 3; 
+        this.timeLeft = GAME_TIME;
+        this.itemSpawnElapsed = 0;
+        this.itemSpawnInterval = this._getNextItemInterval();
+        this.currentSpeedMultiplier = 1.0;
+        this.speedIncreaseInterval = 20;
+        this.lastSpeedIncreaseTime = 0;
+        this.gameTimeElapsed = 0;
+        this.dropRateIncreaseInterval = 10; 
+        this.lastDropRateIncreaseTime = 0;
+        this.currentDropRateMultiplier = 1.0;
+        this._initContainers();
+        this._initBackground();
+        this._initUI();
+        this._initDad();
+        this._initInput();
+        this._showStartScreen();
+    }
+    _initContainers() {
+        this.bgContainer = new PIXI.Container();
+        this.gameContainer = new PIXI.Container();
+        this.uiContainer = new PIXI.Container();
+        this.overlayContainer = new PIXI.Container();
+        this.app.stage.addChild(this.bgContainer, this.gameContainer, this.uiContainer, this.overlayContainer);
+    }
+    _initBackground() {
+        const skyGraphics = new PIXI.Graphics();
+        skyGraphics.beginFill(0x87ceeb);
+        skyGraphics.drawRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+        skyGraphics.endFill();
+        skyGraphics.beginFill(0xfff59d);
+        skyGraphics.drawCircle(GAME_WIDTH - 90, 90, 60);
+        skyGraphics.endFill();
+        this.bgContainer.addChild(skyGraphics);
+        const cloudFragmentShader = `
+            precision highp float;
+            varying vec2 vTextureCoord;
+            uniform sampler2D uSampler;
+            void main(void) {
+                vec4 color = texture2D(uSampler, vTextureCoord);
+                // Apply a subtle glow effect, brightening and slightly tinting white
+                vec3 glow = vec3(1.0, 1.0, 0.9); // Warm white glow
+                // Increase brightness for white/light areas
+                vec3 finalColor = color.rgb + (glow * (color.a * 0.15)); // Add glow based on alpha and a small factor
+                gl_FragColor = vec4(finalColor, color.a);
+            }
+        `;
+        const cloudGlowFilter = new PIXI.Filter(null, cloudFragmentShader);
+        cloudGlowFilter.padding = 10; 
+        this.cloudLayer = new PIXI.Container();
+        for (let i = 0; i < 4; i++) {
+            const cloud = new PIXI.Graphics();
+            cloud.beginFill(0xffffff, 0.8);
+            cloud.drawEllipse(110 + i * 130, 70 + Math.sin(i) * 15, 55, 24);
+            cloud.endFill();
+            this.cloudLayer.addChild(cloud);
+        }
+        this.cloudLayer.filters = [cloudGlowFilter]; 
+        this.bgContainer.addChild(this.cloudLayer);
+        this.groundLayer = new PIXI.Container();
+        const groundGraphics = new PIXI.Graphics();
+        groundGraphics.beginFill(0x7cfc00);
+        groundGraphics.drawRect(0, GAME_HEIGHT - 80, GAME_WIDTH, 80);
+        groundGraphics.endFill();
+        this.groundLayer.addChild(groundGraphics);
+        this.groundDetailLayer = new PIXI.Container();
+        for (let i = 0; i < 20; i++) {
+            const detail = new PIXI.Graphics();
+            detail.beginFill(Math.random() * 0xffffff);
+            detail.drawCircle(Math.random() * GAME_WIDTH, GAME_HEIGHT - (10 + Math.random() * 60), 3 + Math.random() * 2);
+            detail.endFill();
+            this.groundDetailLayer.addChild(detail);
+        }
+        this.groundLayer.addChild(this.groundDetailLayer); 
+        this.bgContainer.addChild(this.groundLayer);
+    }
+    _initUI() {
+        this.scoreText = new PIXI.Text('Score: 0', {
+            fontFamily: 'Arial',
+            fontSize: 32,
+            fill: 0x333366,
+            fontWeight: 'bold'
+        });
+        this.scoreText.x = 22;
+        this.scoreText.y = 18;
+        this.timerText = new PIXI.Text('Time: 60', {
+            fontFamily: 'Arial',
+            fontSize: 32,
+            fill: 0x333366,
+            fontWeight: 'bold'
+        });
+        this.timerText.x = GAME_WIDTH - 160;
+        this.timerText.y = 18;
+        this.healthText = new PIXI.Text('HP: 3', {
+            fontFamily: 'Arial',
+            fontSize: 32,
+            fill: 0xcc0000,
+            fontWeight: 'bold'
+        });
+        this.healthText.x = GAME_WIDTH / 2 - this.healthText.width / 2;
+        this.healthText.y = 18;
+        this.uiContainer.addChild(this.scoreText, this.timerText, this.healthText);
+    }
+    _initDad() {
+        this.dad = new Dad();
+        this.dad.x = GAME_WIDTH / 2;
+        this.dad.y = GAME_HEIGHT - DAD_HEIGHT / 2 - 12;
+        this.gameContainer.addChild(this.dad);
+    }
+    _initInput() {
+        this.keys = {};
+        window.addEventListener('keydown', e => {
+            if (this.state === GameState.PLAYING) {
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.dad.movingLeft = true;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') this.dad.movingRight = true;
+            }
+            if (this.state === GameState.START) {
+                if (e.code === 'Space' || e.code === 'Enter') this._startGame();
+            }
+            if (this.state === GameState.GAMEOVER) {
+                if (e.code === 'Space' || e.code === 'Enter') this._restartGame();
+            }
+        });
+        window.addEventListener('keyup', e => {
+            if (this.state === GameState.PLAYING) {
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.dad.movingLeft = false;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') this.dad.movingRight = false;
+            }
+        });
+    }
+    _showStartScreen() {
+        this.overlayContainer.removeChildren();
+        const title = new PIXI.Text("Dad's Item Dash", {
+            fontFamily: 'Arial',
+            fontSize: 54,
+            fill: 0x333366,
+            fontWeight: 'bold',
+            align: 'center'
+        });
+        title.anchor.set(0.5);
+        title.x = GAME_WIDTH / 2;
+        title.y = GAME_HEIGHT / 2 - 80;
+        const instr = new PIXI.Text('Press Space or Enter to Start', {
+            fontFamily: 'Arial',
+            fontSize: 30,
+            fill: 0x333366,
+            fontWeight: 'bold',
+            align: 'center'
+        });
+        instr.anchor.set(0.5);
+        instr.x = GAME_WIDTH / 2;
+        instr.y = GAME_HEIGHT / 2 + 10;
+        this.overlayContainer.addChild(title, instr);
+    }
+    _showGameOverScreen() {
+        this.overlayContainer.removeChildren();
+        const over = new PIXI.Text('Wish u happy, healthy, and rich.', {
+            fontFamily: 'Arial',
+            fontSize: 54,
+            fill: 0x333366,
+            fontWeight: 'bold',
+            align: 'center'
+        });
+        over.anchor.set(0.5);
+        over.x = GAME_WIDTH / 2;
+        over.y = GAME_HEIGHT / 2 - 140;
+        const summaryTitle = new PIXI.Text('Summary:', {
+            fontFamily: 'Arial',
+            fontSize: 38,
+            fill: 0x333366,
+            fontWeight: 'bold',
+            align: 'center'
+        });
+        summaryTitle.anchor.set(0.5);
+        summaryTitle.x = GAME_WIDTH / 2;
+        summaryTitle.y = GAME_HEIGHT / 2 - 70;
+        const coinsText = new PIXI.Text(`Coins Collected: ${this.coinsCollected}`, {
+            fontFamily: 'Arial',
+            fontSize: 28,
+            fill: 0x333366,
+            align: 'center'
+        });
+        coinsText.anchor.set(0.5);
+        coinsText.x = GAME_WIDTH / 2;
+        coinsText.y = GAME_HEIGHT / 2 - 20;
+        const happinessText = new PIXI.Text(`Happiness Collected: ${this.happinessCollected}`, {
+            fontFamily: 'Arial',
+            fontSize: 28,
+            fill: 0x333366,
+            align: 'center'
+        });
+        happinessText.anchor.set(0.5);
+        happinessText.x = GAME_WIDTH / 2;
+        happinessText.y = GAME_HEIGHT / 2 + 15;
+        const healthText = new PIXI.Text(`Health Collected: ${this.healthCollected}`, {
+            fontFamily: 'Arial',
+            fontSize: 28,
+            fill: 0x333366,
+            align: 'center'
+        });
+        healthText.anchor.set(0.5);
+        healthText.x = GAME_WIDTH / 2;
+        healthText.y = GAME_HEIGHT / 2 + 50;
+        const poisonText = new PIXI.Text(`Poison Collected: ${this.poisonCollected}`, {
+            fontFamily: 'Arial',
+            fontSize: 28,
+            fill: 0x333366,
+            align: 'center'
+        });
+        poisonText.anchor.set(0.5);
+        poisonText.x = GAME_WIDTH / 2;
+        poisonText.y = GAME_HEIGHT / 2 + 85;
+        const score = new PIXI.Text('Final Score: ' + this.score, {
+            fontFamily: 'Arial',
+            fontSize: 38,
+            fill: 0x333366,
+            fontWeight: 'bold',
+            align: 'center'
+        });
+        score.anchor.set(0.5);
+        score.x = GAME_WIDTH / 2;
+        score.y = GAME_HEIGHT / 2 + 130;
+        const instr = new PIXI.Text('Press Space or Enter to Restart', {
+            fontFamily: 'Arial',
+            fontSize: 28,
+            fill: 0x333366,
+            fontWeight: 'bold',
+            align: 'center'
+        });
+        instr.anchor.set(0.5);
+        instr.x = GAME_WIDTH / 2;
+        instr.y = GAME_HEIGHT / 2 + 180;
+        this.overlayContainer.addChild(over, summaryTitle, coinsText, happinessText, healthText, poisonText, score, instr);
+    }
+    _getNextItemInterval() {
+        const baseInterval = 30; 
+        const minInterval = 5; 
+        let interval = baseInterval / this.currentDropRateMultiplier;
+        if (interval < minInterval) {
+            interval = minInterval;
+        }
+        return interval;
+    }
+    _spawnFallingItem() {
+        const x = ITEM_RADIUS + Math.random() * (GAME_WIDTH - ITEM_DIAM);
+        let speed;
+        const itemTypes = [ItemType.COIN, ItemType.HAPPINESS, ItemType.HEALTH, ItemType.ROTTEN_BANANA, ItemType.POISON];
+        let probabilities = {
+            [ItemType.COIN]: 0.3,
+            [ItemType.HAPPINESS]: 0.2,
+            [ItemType.HEALTH]: 0.03, 
+            [ItemType.ROTTEN_BANANA]: 0.15 * this.currentDropRateMultiplier,
+            [ItemType.POISON]: 0.15 * this.currentDropRateMultiplier
+        };
+        let totalProb = 0;
+        for (let type in probabilities) {
+            totalProb += probabilities[type];
+        }
+        for (let type in probabilities) {
+            probabilities[type] /= totalProb;
+        }
+        let randomValue = Math.random();
+        let cumulativeProb = 0;
+        let randomType = ItemType.COIN; 
+        for (let type of itemTypes) {
+            cumulativeProb += probabilities[type];
+            if (randomValue <= cumulativeProb) {
+                randomType = type;
+                break;
+            }
+        }
+        if (randomType === ItemType.ROTTEN_BANANA) {
+            speed = (6 + Math.random() * 4) * this.currentSpeedMultiplier; 
+        } else {
+            speed = (4 + Math.random() * 4) * this.currentSpeedMultiplier; 
+        }
+        const item = new FallingItem(x, speed, randomType);
+        this.gameContainer.addChild(item);
+        this.fallingItems.push(item);
+    }
+    _updateFallingItems(delta) {
+        for (let i = this.fallingItems.length - 1; i >= 0; i--) {
+            const item = this.fallingItems[i];
+            item.update(delta);
+            if (this._checkCollision(item, this.dad)) {
+                switch (item.type) {
+                    case ItemType.COIN:
+                        this.score++;
+                        this.coinsCollected++;
+                        break;
+                    case ItemType.HAPPINESS:
+                        this.happinessCollected++;
+                        break;
+                    case ItemType.HEALTH:
+                        this.healthCollected++;
+                        this.health = Math.min(this.health + 1, 5); 
+                        this.healthText.text = 'HP: ' + this.health;
+                        break;
+                    case ItemType.ROTTEN_BANANA:
+                        this.dad.isFrozen = true;
+                        this.dad.freezeTimer = 1;
+                        this.dad.movingLeft = false;
+                        this.dad.movingRight = false;
+                        break;
+                    case ItemType.POISON:
+                        this.poisonCollected++;
+                        this.health--;
+                        this.healthText.text = 'HP: ' + this.health;
+                        if (this.health <= 0) {
+                            this._gameOver();
+                            return; 
+                        }
+                        break;
+                }
+                this.scoreText.text = 'Score: ' + this.score;
+                this.gameContainer.removeChild(item);
+                this.fallingItems.splice(i, 1);
+                continue;
+            }
+            if (item.y - ITEM_RADIUS > GAME_HEIGHT) {
+                this.gameContainer.removeChild(item);
+                this.fallingItems.splice(i, 1);
+            }
+        }
+    }
+    _checkCollision(a, b) {
+        const ra = a.getBoundsRect();
+        const rb = b.getBoundsRect();
+        return ra.x + ra.width > rb.x &&
+            ra.x < rb.x + rb.width &&
+            ra.y + ra.height > rb.y &&
+            ra.y < rb.y + rb.height;
+    }
+    _updateTimer(delta) {
+        const deltaSeconds = delta / 60;
+        this._timerElapsed = (this._timerElapsed || 0) + deltaSeconds;
+        this.gameTimeElapsed += deltaSeconds;
+        const increaseAmount = 0.15;
+        const increaseInterval = 10;
+        if (this.gameTimeElapsed >= this.lastSpeedIncreaseTime + increaseInterval) {
+            this.currentSpeedMultiplier += increaseAmount;
+            this.lastSpeedIncreaseTime = Math.floor(this.gameTimeElapsed / increaseInterval) * increaseInterval;
+        }
+        if (this.gameTimeElapsed >= this.lastDropRateIncreaseTime + increaseInterval) {
+            this.currentDropRateMultiplier += increaseAmount;
+            this.lastDropRateIncreaseTime = Math.floor(this.gameTimeElapsed / increaseInterval) * increaseInterval;
+        }
+        if (this._timerElapsed >= 1) {
+            this.timeLeft--;
+            this.timerText.text = 'Time: ' + this.timeLeft;
+            this._timerElapsed = 0;
+            if (this.timeLeft <= 0) {
+                this._gameOver();
+            }
+        }
+    }
+    _gameOver() {
+        this.state = GameState.GAMEOVER;
+        this.overlayContainer.visible = true;
+        this._showGameOverScreen();
+    }
+    _startGame() {
+        this.overlayContainer.removeChildren();
+        this.overlayContainer.visible = false;
+        this.state = GameState.PLAYING;
+        this.score = 0;
+        this.coinsCollected = 0;
+        this.happinessCollected = 0;
+        this.healthCollected = 0;
+        this.poisonCollected = 0;
+        this.health = 3; 
+        this.timeLeft = GAME_TIME;
+        this.scoreText.text = 'Score: 0';
+        this.timerText.text = 'Time: 60';
+        this.healthText.text = 'HP: ' + this.health;
+        this._timerElapsed = 0;
+        this.itemSpawnElapsed = 0;
+        this.currentSpeedMultiplier = 1.5; 
+        this.currentDropRateMultiplier = 1.5; 
+        this.itemSpawnInterval = this._getNextItemInterval();
+        this.lastSpeedIncreaseTime = 0;
+        this.gameTimeElapsed = 0;
+        this.lastDropRateIncreaseTime = 0;
+        for (let item of this.fallingItems) this.gameContainer.removeChild(item);
+        this.fallingItems.length = 0;
+        this.dad.x = GAME_WIDTH / 2;
+        this.dad.movingLeft = false;
+        this.dad.movingRight = false;
+        this.dad.isFrozen = false;
+        this.dad.freezeTimer = 0;
+        this.cloudLayer.x = 0;
+        this.groundLayer.x = 0;
+    }
+    _restartGame() {
+        this._startGame();
+    }
+    _updateParallax() {
+        const dadNormalizedX = (this.dad.x - GAME_WIDTH / 2) / (GAME_WIDTH / 2); 
+        this.cloudLayer.x = -dadNormalizedX * 20; 
+        this.groundLayer.x = -dadNormalizedX * 40; 
+    }
+    update(delta) {
+        if (this.state === GameState.PLAYING) {
+            this.dad.update();
+            this._updateParallax(); 
+            if (this.dad.isFrozen) {
+                this.dad.freezeTimer -= delta / 60;
+                if (this.dad.freezeTimer <= 0) {
+                    this.dad.isFrozen = false;
+                    this.dad.freezeTimer = 0;
+                }
+            }
+            this.itemSpawnElapsed += delta;
+            if (this.itemSpawnElapsed >= this.itemSpawnInterval) {
+                this._spawnFallingItem();
+                this.itemSpawnElapsed = 0;
+                this.itemSpawnInterval = this._getNextItemInterval(); 
+            }
+            this._updateFallingItems(delta);
+            this._updateTimer(delta);
+        }
+    }
+}
+const app = new PIXI.Application({
+    width: GAME_WIDTH,
+    height: GAME_HEIGHT,
+    backgroundColor: 0x87ceeb, 
+    antialias: true,
+    resolution: 1
+});
+document.body.appendChild(app.view);
+const game = new Game(app);
+app.ticker.add(delta => {
+    game.update(delta);
+});
+    </script>
+</body>
+</html>
